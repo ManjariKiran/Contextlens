@@ -1,4 +1,4 @@
-##Program to simulate loops
+##Program to simulate loops from given Hi-C files
 library(strawr)
 library(devtools)
 library(mariner)
