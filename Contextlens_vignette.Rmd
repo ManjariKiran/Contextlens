@@ -1,5 +1,5 @@
 ---
-title: "contextlens"
+title: "Contextlens : An R package to identify differential loops from Hi-C data"
 author: "Manjari Kiran"
 date: "`r Sys.Date()`"
 output: html_document
@@ -9,11 +9,9 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Abstract
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Over the past few years there have been advancement in chromatin structure callers. One can use these tools to get loops, TADs and compartments from Hi-C files. There are limited methods to call differental loops. 
 
 ```{r cars}
 summary(cars)
