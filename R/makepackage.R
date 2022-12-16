@@ -2,7 +2,7 @@ install.packages("devtools")
 install.packages("roxygen2")
 devtools::create("contextlens")
 devtools::document()
-
+##https://jennybc.github.io/2014-05-12-ubc/ubc-r/session03_git.html
 ##Steps to connect github reporitory to local rstudio
 
 ##1)Install git
