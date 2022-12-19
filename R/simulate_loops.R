@@ -76,18 +76,8 @@ for(i in 1:21){
   }
 }
 
-m=(buffer*2)+1
-center <- buffer+1
-decay_matrix_subs <- matrix(data=NA,nrow=m,ncol=m)
-for(i in 1:21){
-  for(j in 1:21){
-    decay_matrix_subs[i,j] <- loopCount_APA[i,j]/loopCount_APA[center,center]
-  }
-}
-
-#foo <- round(decay_matrix[7:15,7:15],2)
-
 decay_matrix_subs <- (1-decay_matrix)
+decay_matrix_subs
 original <- 100 - (100*decay_matrix_subs)
 sides <- median((c(original[1,],original[,1],original[m,],original[,m])),na.rm=TRUE)
 alpha = (200 - sides)/(100 - sides)
