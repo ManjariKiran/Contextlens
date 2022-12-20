@@ -1,6 +1,6 @@
 Package: contextlens
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: The package identifies differential loops from Hi-C data normalizing for local background
+Version: 1.0.0.0
 Authors@R: 
     person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID"))
