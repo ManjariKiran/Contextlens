@@ -78,28 +78,7 @@ for(i in 1:21){
 
 decay_matrix_subs <- (1-decay_matrix)
 decay_matrix_subs
-original <- 100 - (100*decay_matrix_subs)
-sides <- median((c(original[1,],original[,1],original[m,],original[,m])),na.rm=TRUE)
-alpha = (200 - sides)/(100 - sides)
 
-decay_matrix_subs
-TRT <- round(200 - (100*decay_matrix_subs*alpha))
-WT <- 100 - (100*decay_matrix_subs)
-
-WT <- decay_matrix*100
-TRT <- decay_matrix*200
-normalized1=c()
-normalized2=c()
-for(i in 0:10){
-  new1 <- median(mh_index(buffer = 10, loop = WT , inner = i,exclude=0))
-  new2 <- median(mh_index(buffer = 10, loop = TRT , inner = i,exclude=0))
-  normalized1 <- append(normalized1,new1)
-  normalized2 <- append(normalized2,new2)
-}
-
-
-observed <- as.matrix(countMatrix_obs[11,11,,])
-as.vector(countMatrix_obs[11,11,1,])
 
 ##Calculate mean and sd of center pixel
 observed <- as.matrix(countMatrix_obs[11,11,,])
@@ -107,84 +86,51 @@ colnames(observed) <- c("FS_1_1","FS_1_2","FS_2_1","FS_2_2")
 dim(observed)
 
 loop_mean <- rowMeans(observed)
-loop_sd <- rowSds(observed)
+loop_sd <- rowVars(observed)
 observed_stat <- cbind(observed,round(loop_mean))
 colnames(observed_stat) <- c("FS_1_1","FS_1_2","FS_2_1","FS_2_2","mean")
 number <- sort(unique(observed_stat[,5]))
 ref <- data.frame("mean","sd")
 colnames(ref) <- c("mean","sd")
+head(ref)
 for(i in 1:length(number)){
-  x <- mean(observed_stat[which(observed_stat[,5] == number[i]),])
-  y <- sd(observed_stat[which(observed_stat[,5] == number[i]),])
+  x <- mean(observed_stat[which(observed_stat[,5] == number[i]),],na.rm=T)
+  y <- sd(observed_stat[which(observed_stat[,5] == number[i]),],na.rm=T)
   ref[i,] <- cbind(number[i],round(y,3))
 }
-head(observed_stat)
 
-number
 ##Print random numbers for given mean and std
-center_df <- data.frame("rep1","rep2","rep3","rep4","rep5","rep6")
-colnames(center_df) <- c("rep1","rep2","rep3","rep4","rep5","rep6")
+center_df <- data.frame("rep1","rep2","rep3","rep4","rep5","rep6","mean")
+colnames(center_df) <- data.frame("rep1","rep2","rep3","rep4","rep5","rep6","mean")
 for(i in 1:10000){
    random <-  sample(number, 1, replace = TRUE)
    n_sd <- as.numeric(ref[which(ref$mean == random),]$sd)
-   center_df[i,] <- round(rnorm(n=6,mean = random, sd= n_sd),0)
+   center_df[i,] <- c(round(rnorm(n=6,mean = random, sd= n_sd),0),random)
 }
+head(center_df)
 
-##Set these as center pixel and create local background
+##Select random loops for fold change
 head(center_df)
 center_df2 <- center_df[,4:6]
 head(center_df2)
 ##Create 10% fold change loops
 de <- sample(1:10000,size = 1000, replace=F)
-length(de)
-write.csv(de,"total_de")
 de_half <- sample(de,size=400,replace=F)
-length(de_half)
-write.csv(de_half,"total_de_half")
 de_rem <- de[!de %in% de_half]
-length(de_rem)
 de_two <- sample(de_rem,size=300,replace=F)
-length(de_two)
-write.csv(de_two,"total_de_two")
 de_rem <- de_rem[!de_rem %in% de_two]
-length(de_rem)
 de_three <- sample(de_rem,size=200,replace=F)
-length(de_three)
-write.csv(de_three,"total_de_three")
 de_rem <- de_rem[!de_rem %in% de_three]
-length(de_rem)
 de_four <- de_rem
-write.csv(de_four,"total_de_four")
-de_four
-head(center_df2)
-#de_four <-(center_df2[de_four,][1:3])
-#de_four[1:3] <- apply(de_four[1:3],2,
-#                    function(x) as.numeric(as.character(x)))
-#de_three <-(center_df2[de_three,][1:3])
-#de_three[1:3] <- apply(de_three[1:3],2,
-#                      function(x) as.numeric(as.character(x)))
-#de_two <-(center_df2[de_two,][1:3])
-#de_two[1:3] <- apply(de_two[1:3],2,
-#                      function(x) as.numeric(as.character(x)))
-#de_half <-(center_df2[de_half,][1:3])
-#de_half[1:3] <- apply(de_half[1:3],2,
-#                     function(x) as.numeric(as.character(x)))
 
-#de_half
-#Remaining <-center_df2[-de,][1:3]
-#center_df2 <- rbind(Remaining,de_half,de_two,de_three,de_four)
-#treatment <- as.data.frame(center_df2)
-#dim(treatment)
-#center_df2 <- treatment[order(as.numeric(row.names(center_df2))),]
-#head(center_df)
-#center_df <- center_df[,1:3]
-
+##Set these as center pixel and create local background
 Rep1 <- vector("list",length = 10000)
 Rep2 <- vector("list",length = 10000)
 Rep3 <- vector("list",length = 10000)
 Rep4 <- vector("list",length = 10000)
 Rep5 <- vector("list",length = 10000)
 Rep6 <- vector("list",length = 10000)
+Rep7 <- vector("list",length = 10000)
 m=(buffer*2)+1
 for(i in 1:10000){
   M1 <- matrix(data=NA,nrow=m,ncol=m)
@@ -193,44 +139,48 @@ for(i in 1:10000){
   M4 <- matrix(data=NA,nrow=m,ncol=m)
   M5 <- matrix(data=NA,nrow=m,ncol=m)
   M6 <- matrix(data=NA,nrow=m,ncol=m)
+  M7 <- matrix(data=NA,nrow=m,ncol=m)
       M1 <- round(as.numeric(center_df[i,1]) - decay_matrix_subs*as.numeric(center_df[i,1]))
       M2 <- round(as.numeric(center_df[i,2]) - decay_matrix_subs*as.numeric(center_df[i,2]))
       M3 <- round(as.numeric(center_df[i,3]) - decay_matrix_subs*as.numeric(center_df[i,3]))
       M4 <- round(as.numeric(center_df[i,4]) - decay_matrix_subs*as.numeric(center_df[i,4]))
       M5 <- round(as.numeric(center_df[i,5]) - decay_matrix_subs*as.numeric(center_df[i,5]))
       M6 <- round(as.numeric(center_df[i,6]) - decay_matrix_subs*as.numeric(center_df[i,6]))
+      M7 <- round(as.numeric(center_df[i,6]) - decay_matrix_subs*as.numeric(center_df[i,7]))
 Rep1[[i]] <- M1
 Rep2[[i]] <- M2
 Rep3[[i]] <- M3
 Rep4[[i]] <- M4
 Rep5[[i]] <- M5
 Rep6[[i]] <- M6
+Rep7[[i]] <- M7
 }
 ALL <- list(Rep1,Rep2,Rep3,Rep4,Rep5,Rep6)
-de_two
-Rep1[[5913]]
-for(i in 1:length(de_two)){
-  x <- de_two[i]
-  sides <- median((c(Rep1[[x]][1,],Rep1[[x]][,1],Rep1[[x]][m,],Rep1[[x]][,m])),na.rm=TRUE)
-  new_center4 <- 2*as.numeric(center_df[x,4])
-  new_center5 <- 2*as.numeric(center_df[x,5])
-  new_center6 <- 2*as.numeric(center_df[x,6])
-  alpha4 = (new_center4 - sides)/(as.numeric(center_df[x,1]) - sides)
-  alpha5 = (new_center5 - sides)/(as.numeric(center_df[x,2]) - sides)
-  alpha6 = (new_center6 - sides)/(as.numeric(center_df[x,3]) - sides)
-  Rep4[[x]] <- round(new_center4 - (decay_matrix_subs*as.numeric(center_df[x,1])*alpha4))
-  Rep5[[x]] <- round(new_center5 - (decay_matrix_subs*as.numeric(center_df[x,2])*alpha5))
-  Rep6[[x]] <- round(new_center6 - (decay_matrix_subs*as.numeric(center_df[x,3])*alpha6))
+length(de_four)
+de_four
+Rep1[[6922]]
+Rep4[[6922]]
+for(i in 1:length(de_four)){
+  x <- de_four[i]
+  sides <- median(c(Rep7[[x]][1,],Rep7[[x]][,1],Rep7[[x]][m,],Rep7[[x]][,m]),na.rm=TRUE)
+  new_center4 <- 4*as.numeric(center_df[x,4])
+  new_center5 <- 4*as.numeric(center_df[x,5])
+  new_center6 <- 4*as.numeric(center_df[x,6])
+  alpha4 = (new_center4 - sides)/(as.numeric(center_df[x,7]) - sides)
+  alpha5 = (new_center5 - sides)/(as.numeric(center_df[x,7]) - sides)
+  alpha6 = (new_center6 - sides)/(as.numeric(center_df[x,7]) - sides)
+  Rep4[[x]] <- round(new_center4 - (decay_matrix_subs*as.numeric(center_df[x,7])*alpha4))
+  Rep5[[x]] <- round(new_center5 - (decay_matrix_subs*as.numeric(center_df[x,7])*alpha5))
+  Rep6[[x]] <- round(new_center6 - (decay_matrix_subs*as.numeric(center_df[x,7])*alpha6))
 }
-Rep4[[5913]]
+Rep4[[1235]]
 ALL <- list(Rep1,Rep2,Rep3,Rep4,Rep5,Rep6)
 ALL_simulated <- array(unlist(ALL),dim=c(21,21,10000,6))
 ALL <- DelayedArray::DelayedArray(ALL_simulated)
-dim(ALL)
+
 spacings <- dim(ALL)
 nBlocks <- 20
 spacings[3] <- ceiling(dim(ALL)[3] / nBlocks)
-
 
 grid <- RegularArrayGrid(dim(ALL), spacings)
 grid
@@ -268,7 +218,7 @@ observed <- observed[-to_remove,]
 normalized <- normalized[-to_remove,]
 new <- ALL[,,-to_remove,]
 loops <- loop1[-to_remove,]
-l <- subset(loops, loop %in% de_two)
+l <- subset(loops, loop %in% de_four)
 
 dim(new)
 dim(loops)
@@ -332,9 +282,9 @@ summary(res1)
 file1 <- cbind(loops,res1)
 head(file1)
 write.csv(file1,"normalization.csv")
-subset(file1, loop %in% de_two) |>
-    subset(log2FoldChange > 1) |>
-    subset(padj < 0.1)
+subset(file1, loop %in% de_four) |>
+    subset(log2FoldChange < 2) |>
+    subset(padj > 0.1)
 
 
 
