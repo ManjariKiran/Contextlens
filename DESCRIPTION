@@ -1,10 +1,21 @@
 Package: contextlens
 Title: The package identifies differential loops from Hi-C data normalizing for local background
 Version: 1.0.0.0
-Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+Authors@R: c(person("Manjari", "Kiran", 
+             email = "manjari.hcu@uohyd.ac.in", 
+             role = c("aut"),
+             comment = c(ORCID = "0000-0003-0153-7072")),
+             person(c("Eric", "S."), "Davis", 
+             email = "esdavis@live.unc.edu", 
+             role = c("aut"),
+             comment = c(ORCID = "0000-0003-4051-3217")),
+             person(c("Douglas", "H."), "Phanstiel", 
+             email = "douglas_phanstiel@med.unc.edu", 
+             role = c("aut")))
+Description: contextlens is differential loop calling package in R. 
+The package identifies differential loops based on local background from Hi-C data. 
+This package includes functions to select desired local background and 
+utilizing those to normalize the center loop pixel to call differential loops.
 License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Encoding: UTF-8
