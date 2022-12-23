@@ -19,7 +19,7 @@ To cite `contextlens` in publications use:
 
 `(R version 4.2)` as follows:
 
-```
+```R
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
