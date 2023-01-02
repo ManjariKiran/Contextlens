@@ -32,4 +32,14 @@ BiocManager::install("contextlens")
 ```
 ## Usage
 
-Coming soon.....
+```R
+## Load libraries and datasets
+library(strawr)
+library(devtools)
+library(mariner)
+library(SummarizedExperiment)
+library(DelayedArray)
+library(BiocParallel)
+library(InteractionSet)
+library(DESeq2)
+```
