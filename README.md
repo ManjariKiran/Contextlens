@@ -173,42 +173,45 @@ Y <- array(Y, dim=c(dim(X[[1]]), length(X)))
 normalized <- apply(Y, c(1,2), median, na.rm = TRUE)
 
 observed <- as.matrix(countMatrix_obs[11,11,,])
-dim(normalized)
-dim(observed)
-head(loops)
+
+
 ## Isolate count matrix
 
 norm_MH = as.matrix(normalized) / exp(rowMeans(log(as.matrix(normalized))))
 to_remove <- which(!is.finite(rowSums(norm_MH)) == TRUE) #Find the rows with NA values
 low_counts <- which((rowMedians(observed) < 5) == TRUE) #Find the rows with < 5 median value
-to_remove_total <- union(to_remove,low_counts)
+to_remove_total <- union(to_remove,low_counts) #Total number of loops to be removed
 
-norm_MH <- norm_MH[-to_remove_total,]
+#Create new matrix of observed and normalized counts
+norm_MH <- norm_MH[-to_remove_total,] 
 observed <- observed[-to_remove_total,]
 normalized <- normalized[-to_remove_total,]
 new <- countMatrix_obs[,,-to_remove_total,]
 loops <- loops[-to_remove_total,]
 
+#Change the column names for observed counts
 colnames(observed) <- c("WT_0_1_1","WT_4320_1_1","WT_0_2_1","WT_4320_2_1","WT_0_1_2","WT_4320_1_2","WT_0_2_2","WT_4320_2_2","WT_0_1_3","WT_4320_1_3","WT_0_2_3","WT_4320_2_3")
 colnames(normalized) <- c("WT_0_1_1","WT_4320_1_1","WT_0_2_1","WT_4320_2_1","WT_0_1_2","WT_4320_1_2","WT_0_2_2","WT_4320_2_2","WT_0_1_3","WT_4320_1_3","WT_0_2_3","WT_4320_2_3")
 colnames(norm_MH) <- c("WT_0_1_1","WT_4320_1_1","WT_0_2_1","WT_4320_2_1","WT_0_1_2","WT_4320_1_2","WT_0_2_2","WT_4320_2_2","WT_0_1_3","WT_4320_1_3","WT_0_2_3","WT_4320_2_3")
 
+#Split the column names for condition, biorep and techrep
 colData <-
   do.call(rbind, strsplit(x = colnames(observed), split = "_")) |>
   as.data.frame(stringsAsFactors = TRUE) |>
   `colnames<-`(value = c("none","condition", "biorep", "techrep"))
 colData
 
+#Create a DeSeq dataset
 dds <-
   DESeqDataSetFromMatrix(countData = round(observed),
                          colData = colData,
                          design = ~ condition + biorep)
 
+#Normalize with normalization factor
 normalizationFactors(dds) <- as.matrix(norm_MH)
 default <- counts(dds,normalized = FALSE)
-head(default)
 default_normfactor <- counts(dds, normalized =TRUE)
-head(default_normfactor)
+
 
 # perform enrichments
 #dds <- DESeq(dds,betaPrior=FALSE, fitType="local")
@@ -221,10 +224,14 @@ res1 <-
   lfcShrink(coef = "condition_4320_vs_0", type="apeglm")
 summary(res1)
 
+#Plot MA plot
 plotMA(res1,ylim=c(-2,2),main='8-10 radial normalization',
        colSig = "skyblue",alpha = 0.05,cex.axis=1.5,cex=0.8,cex.lab=1.5)
 
+#Create output file with loop information
 mcols(loops) <- cbind(mcols(loops), res1)
+
+#Save the output
 write.table(loops,"4320_vs_0_4-6_norm",quote=FALSE,sep="\t")
 
 ```
