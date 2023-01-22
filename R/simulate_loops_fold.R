@@ -14,7 +14,7 @@ hicFiles <- list.files(path="~/contextlens/inst/extdata", pattern=".hic$", full.
 hicFiles
 loopFiles
 ## Define parameters
-buffer <- 15
+buffer <- 10
 res <- 10e03
 norm <- "NONE"
 matrix <- "observed"
@@ -36,7 +36,7 @@ loops <- binPairs(x=loops, binSize=res)
 GenomeInfoDb::seqlevelsStyle(loops) <- 'ENSEMBL'
 
 ##Set a distance threshold
-loops10kb <- loops[which(pairdist(loops) > 200000),]
+loops10kb <- loops[which(pairdist(loops) > 100000),]
 
 ## Expand pixels to matrices and extract
 loopCounts <-
@@ -81,8 +81,8 @@ decay_matrix_subs
 
 
 ##Calculate mean and sd of center pixel
-#observed <- as.matrix(countMatrix_obs[11,11,,])
-observed <- as.matrix(countMatrix_obs[16,16,,])
+observed <- as.matrix(countMatrix_obs[11,11,,])
+#observed <- as.matrix(countMatrix_obs[16,16,,])
 colnames(observed) <- c("FS_1_1","FS_1_2","FS_2_1","FS_2_2")
 observed
 
@@ -122,15 +122,30 @@ center_df2 <- center_df[,4:6]
 head(center_df2)
 ##Create 10% fold change loops
 de <- sample(1:10000,size = 400, replace=F)
-#de_half <- sample(de,size=400,replace=F)
-#de_rem <- de[!de %in% de_half]
-#de_two <- sample(de_rem,size=300,replace=F)
-#de_rem <- de_rem[!de_rem %in% de_two]
-#de_three <- sample(de_rem,size=200,replace=F)
+de_half <- sample(de,size=400,replace=F)
+de_rem <- de[!de %in% de_half]
+de_two <- sample(de_rem,size=300,replace=F)
+de_rem <- de_rem[!de_rem %in% de_two]
+de_three <- sample(de_rem,size=200,replace=F)
+#de_rem <- de[!de %in% de_four_cnv]
+de_rem <- de_rem[!de_rem %in% de_three]
 de_four_cnv <- sample(de,size = 200, replace =F)
-de_rem <- de[!de %in% de_four_cnv]
-#de_rem <- de_rem[!de_rem %in% de_three]
 de_four <- de_rem
+length(de)
+length(de_half)
+length(de_two)
+length(de_three)
+length(de_four)
+de_half_cnv <- sample(de_half,size=200,replace=F)
+de_half <- de_half[!de_half %in% de_half_cnv]
+de_two_cnv <- sample(de_two,size=150,replace=F)
+de_two <- de_two[!de_two %in% de_two_cnv]
+de_three_cnv <- sample(de_three,size=100,replace=F)
+de_three <- de_three[!de_three %in% de_three_cnv]
+de_four_cnv <- sample(de_four,size=50,replace=F)
+de_four <- de_four[!de_four %in% de_four_cnv]
+
+
 
 write.csv(de_four_cnv,"de_four_cnv")
 write.csv(de_four,"de_four")
@@ -172,12 +187,12 @@ length(de_four)
 de_four
 #Rep1[[6923]]
 #Rep4[[6923]]
-for(i in 1:length(de_four)){
-  x <- de_four[i]
+for(i in 1:length(de_half)){
+  x <- de_half[i]
   sides <- median(c(Rep7[[x]][1,],Rep7[[x]][,1],Rep7[[x]][m,],Rep7[[x]][,m]),na.rm=TRUE)
-  new_center4 <- 4*as.numeric(center_df[x,4])
-  new_center5 <- 4*as.numeric(center_df[x,5])
-  new_center6 <- 4*as.numeric(center_df[x,6])
+  new_center4 <- 1.5*as.numeric(center_df[x,4])
+  new_center5 <- 1.5*as.numeric(center_df[x,5])
+  new_center6 <- 1.5*as.numeric(center_df[x,6])
   alpha4 = (new_center4 - sides)/(as.numeric(center_df[x,7]) - sides)
   alpha5 = (new_center5 - sides)/(as.numeric(center_df[x,7]) - sides)
   alpha6 = (new_center6 - sides)/(as.numeric(center_df[x,7]) - sides)
@@ -186,13 +201,12 @@ for(i in 1:length(de_four)){
   Rep6[[x]] <- round(new_center6 - (decay_matrix_subs*as.numeric(center_df[x,7])*alpha6))
 }
 
-ALL <- list(Rep1,Rep2,Rep3,Rep4,Rep5,Rep6)
-Rep1
-for(i in 1:length(de_four_cnv)){
-  x <- de_four_cnv[i]
-  new_center4 <- 4*as.numeric(center_df[x,4])
-  new_center5 <- 4*as.numeric(center_df[x,5])
-  new_center6 <- 4*as.numeric(center_df[x,6])
+#ALL <- list(Rep1,Rep2,Rep3,Rep4,Rep5,Rep6)
+for(i in 1:length(de_half_cnv)){
+  x <- de_half_cnv[i]
+  new_center4 <- 1.5*as.numeric(center_df[x,4])
+  new_center5 <- 1.5*as.numeric(center_df[x,5])
+  new_center6 <- 1.5*as.numeric(center_df[x,6])
   Rep4[[x]] <- round(new_center4 - decay_matrix_subs*new_center4)
   Rep5[[x]] <- round(new_center5 - decay_matrix_subs*new_center5)
   Rep6[[x]] <- round(new_center6 - decay_matrix_subs*new_center6)
@@ -200,14 +214,14 @@ for(i in 1:length(de_four_cnv)){
 
 ALL <- list(Rep1,Rep2,Rep3,Rep4,Rep5,Rep6)
 
-#ALL_simulated <- array(unlist(ALL),dim=c(21,21,10000,6))
-ALL_simulated <- array(unlist(ALL),dim=c(31,31,10000,6))
+ALL_simulated <- array(unlist(ALL),dim=c(21,21,10000,6))
+#ALL_simulated <- array(unlist(ALL),dim=c(31,31,10000,6))
 ALL <- DelayedArray::DelayedArray(ALL_simulated)
 Rep2[3]
 spacings <- dim(ALL)
 nBlocks <- 20
 spacings[3] <- ceiling(dim(ALL)[3] / nBlocks)
-Rep1
+
 ## The functions used to retreive median of signal for 1-10 radial distance
 dist_diag <- function(buffer, loop, res, exclude){
   res <- 10000
@@ -297,7 +311,7 @@ dim(ALL)
 #x <- decay_matrix_subs
 #radial_par(buffer=15, decay_matrix_subs,inner=15)
 ans <-
-  lapply(1:15, \(i) {
+  lapply(1:10, \(i) {
     tmp <-
       blockApply(x = ALL,
                  FUN = \(x) apply(x,c(3,4),FUN = \(z) {
@@ -310,14 +324,14 @@ ans <-
   })
 
 ##Calculating median of three radial distances
-X <- list(ans[[1]],ans[[2]],ans[[3]])
+X <- list(ans[[8]],ans[[9]],ans[[10]])
 Y <- do.call(cbind, X)
 Y <- array(Y, dim=c(dim(X[[1]]), length(X)))
 normalized <- apply(Y, c(1,2), median, na.rm = TRUE)
 dim(ALL)
 ans
-#observed <- ALL[11,11,,]
-observed <- as.matrix(ALL[16,16,,])
+observed <- ALL[11,11,,]
+#observed <- as.matrix(ALL[16,16,,])
 head(normalized)
 
 
@@ -352,9 +366,10 @@ colData <-
   as.data.frame(stringsAsFactors = TRUE) |>
   `colnames<-`(value = c("condition", "biorep"))
 colData
+observed <- abs(observed)
 #observed1 <- as.matrix(observed[-1 ,])
 dds <-
-  DESeqDataSetFromMatrix(countData = round(observed),
+  DESeqDataSetFromMatrix(countData = round((observed)),
                          colData = colData,
                          design = ~ condition)
 dds$condition <- factor(dds$condition, levels=c("WT","TRT"))
@@ -384,9 +399,9 @@ dds <-
 #default_normfactor <- counts(dds, normalized =TRUE)
 #head(default_normfactor)
 #head(norm_MH)
-
+dds <- DESeq(dds)
 # perform enrichments
-
+plotDispEsts(dds)
 dds$condition <- factor(dds$condition, levels=c("WT","TRT"))
 normalizationFactors(dds) <- as.matrix(norm_MH)
 
@@ -399,25 +414,25 @@ summary(res1)
 file1 <- cbind(loops,res1)
 head(file1)
 #write.csv(file2,"normalization_8-10.csv")
-dim(subset(file, loop %in% de_four) |>
-      subset(log2FoldChange >= 2) |>
+dim(subset(file, loop %in% de_half) |>
+      subset(log2FoldChange >= 0.585) |>
       subset(padj < 0.1))
-dim(subset(file, loop %in% de_four_cnv) |>
-      subset(log2FoldChange >= 2) |>
+dim(subset(file, loop %in% de_half_cnv) |>
+      subset(log2FoldChange >= 0.585) |>
       subset(padj < 0.1))
-dim(subset(file1, loop %in% de_four) |>
-    subset(log2FoldChange >= 2) |>
+dim(subset(file1, loop %in% de_half) |>
+    subset(log2FoldChange >= 0.585) |>
     subset(padj < 0.1))
-dim(subset(file1, loop %in% de_four_cnv) |>
-  subset(log2FoldChange >= 2) |>
+dim(subset(file1, loop %in% de_half_cnv) |>
+  subset(log2FoldChange >= 0.585) |>
   subset(padj < 0.1))
-dim(subset(file, loop %in% de_four) |>
+dim(subset(file, loop %in% de_half) |>
       subset(padj < 0.1))
-dim(subset(file, loop %in% de_four_cnv) |>
+dim(subset(file, loop %in% de_half_cnv) |>
       subset(padj < 0.1))
-dim(subset(file1, loop %in% de_four) |>
+dim(subset(file1, loop %in% de_half) |>
       subset(padj < 0.1))
-dim(subset(file1, loop %in% de_four_cnv) |>
+dim(subset(file1, loop %in% de_half_cnv) |>
       subset(padj < 0.1))
 
 center_df[4155,]

@@ -1,12 +1,12 @@
 if (!requireNamespace("remotes", quietly = TRUE))
-install.packages("remotes")
+  install.packages("remotes")
 remotes::install_github("EricSDavis/straw/R",force =TRUE)
 remotes::install_github("EricSDavis/mariner@dev", force=TRUE)
 remotes::install_github("EricSDavis/mariner@dev")
 install.packages("SummarizedExperiment")
 install.packages('devtools')
 if (!require("BiocManager", quietly = TRUE))
-install.packages("BiocManager")
+  install.packages("BiocManager")
 BiocManager::install("apeglm")
 #install.packages("namespace")
 
@@ -24,8 +24,8 @@ library(DESeq2)
 #updateR()
 
 ## List loop files
-loopFiles <- list.files(path = "~/contextlens/inst/extdata",pattern="Loops.txt$", full.names = TRUE)
-hicFiles <- list.files(path="~/contextlens/inst/extdata", pattern=".hic$", full.names = TRUE)
+loopFiles <- list.files(path = "~/contextlens/CNV",pattern=".txt$", full.names = TRUE)
+hicFiles <- list.files(path="~/contextlens/CNV", pattern=".hic$", full.names = TRUE)
 hicFiles
 loopFiles
 ## Define parameters
@@ -40,9 +40,9 @@ giList <-
   lapply(as_ginteractions) |>
   setNames(gsub(".*//(.*)_.*", "\\1", loopFiles))
 ## Merge into a single set of loops
-loops <- mergePairs(x = giList, radius = 20e03, column = "APScoreAvg", selectMax = TRUE)
+loops <- mergePairs(x = giList, radius = 10e03, column = "o")
 head(loops)
-
+giList
 ## Change 5kb loops to 10kb
 loops <- binPairs(x=loops, binSize=res)
 
@@ -57,89 +57,24 @@ loopCounts <-
                   norm=norm,
                   matrix=matrix)
 
-## Do the same for observed count Expand pixels to matrices and extract
-matrix <- "oe"
-loopCountsoe <-
-  pixelsToMatrices(x=loops, buffer=buffer) |>
-  pullHicMatrices(binSize=res,
-                  files=hicFiles,
-                  norm=norm,
-                  matrix=matrix)
-
-## The functions used to retreive median of signal for 1-10 radial distance
-dist_diag <- function(buffer, loop, res, exclude){
-  res <- 10000
-  p <- pairdist(loop)
-  bin <- p/res
-  res1 <- res/1000
-  start <- (bin)*res1
-  m=(buffer*2)+1
-  M <- matrix(data=NA,nrow=m,ncol=m)
-  for(k in 1:m){
-    rem = k-1
-    for(i in k:m){
-      j = i-rem
-      M[i,j] <- start
-    }
-    start <- start - res1
-  }
-  start <- (bin)*res1
-  for(k in 1:m){
-    rem = k-1
-    for(j in k:m){
-      i = j-rem
-      M[i,j] <- start
-    }
-    start <- start + res1
-  }
-  #  M[is.na(M)] <- 1
-  M[M < exclude] <- NA
-  return(M)
-}
-mh_index <- function(buffer, loop, inner, exclude){
-  m=(buffer*2)+1
-  center <- buffer+1
-  M <- matrix(data=NA,nrow=m,ncol=m)
-  for(j in 1:m){
-    l=buffer+j
-    for(i in 1:m){
-      k=(m+1)-j
-      if((i <= (buffer+1)) && (j <= (buffer+1))){
-        M[i,j]<-k-i
-      }
-      if((i <= (buffer+1)) && (j > (buffer+1))){
-        M[i,j]<-j-i
-      }
-      if((i > (buffer+1)) && (j <= (buffer+1))){
-        M[i,j]<-i-j
-      }
-      if((i > (buffer+1)) && (j > (buffer+1))){
-        M[i,j]<-i-k
-      }
-    }
-  }
-  d <- dist_diag(buffer, loops[i], res, exclude)
-  inner_val <- which(M == inner) #Extract MH distance same as inner from M matrix
-  inner_d <- which(!is.na(d)) #Extract MH distance same as inner from d matrix
-  notNA <- intersect(inner_d,inner_val)
-  new <- loop[notNA]
-  return(new)
-}
-
-## Using blockApply
-
 countMatrix_obs <-
   assay(loopCounts) |>
   aperm(c(3,4,1,2))
-dim(countMatrix_obs)
-countMatrices <-
-  assay(loopCountsoe) |>
-  aperm(c(3,4,1,2))
 
+##Function to get median of pixel parallel to diagnol at every MH distance
+radial_par <- function(buffer, loop, inner){
+  center <- buffer+1
+  output <- c()
+  output1 <- loop[center+inner,center+inner]
+  output2 <- loop[center-inner,center-inner]
+  output <- c(output1,output2)
+  return(output)
+}
+
+## Using blockApply
 spacings <- dim(countMatrix_obs)
 nBlocks <- 20
 spacings[3] <- ceiling(dim(countMatrix_obs)[3] / nBlocks)
-
 
 grid <- RegularArrayGrid(dim(countMatrix_obs), spacings)
 
@@ -148,7 +83,7 @@ ans <-
     tmp <-
       blockApply(x = countMatrix_obs,
                  FUN = \(x) apply(x,c(3,4),FUN = \(z) {
-                   median(mh_index(buffer = buffer, loop=z, inner=i, exclude= 0))
+                   median(radial_par(buffer = buffer, loop=z, inner=i))
                  }),
                  grid = grid,
                  verbose = TRUE,
@@ -156,12 +91,16 @@ ans <-
     do.call(rbind, tmp)
   })
 
+
 ##Calculating medain of three radial distances
 X <- list(ans[[8]],ans[[9]],ans[[10]])
 Y <- do.call(cbind, X)
 Y <- array(Y, dim=c(dim(X[[1]]), length(X)))
 normalized <- apply(Y, c(1,2), median, na.rm = TRUE)
 
+loops <- mergePairs(x = giList, radius = 20e03, column = "APScoreAvg", selectMax = TRUE)
+loops <- binPairs(x=loops, binSize=res)
+GenomeInfoDb::seqlevelsStyle(loops) <- 'ENSEMBL'
 observed <- as.matrix(countMatrix_obs[11,11,,])
 dim(normalized)
 dim(observed)
@@ -174,12 +113,13 @@ norm_MH <- norm_MH[-to_remove,]
 observed <- observed[-to_remove,]
 normalized <- normalized[-to_remove,]
 new <- countMatrix_obs[,,-to_remove,]
-
-
 loops <- loops[-to_remove,]
 colnames(observed) <- c("WT_1_1","WT_1_2","WT_2_1","WT_2_2","FS_1_1","FS_1_2","FS_2_1","FS_2_2")
 colnames(normalized) <- c("WT_1_1","WT_1_2","WT_2_1","WT_2_2","FS_1_1","FS_1_2","FS_2_1","FS_2_2")
 colnames(norm_MH) <- c("WT_1_1","WT_1_2","WT_2_1","WT_2_2","FS_1_1","FS_1_2","FS_2_1","FS_2_2")
+#colnames(observed) <- c("FS_1_1","FS_1_2","FS_2_1","FS_2_2","WT_1_1","WT_1_2","WT_2_1","WT_2_2")
+#colnames(normalized) <- c("FS_1_1","FS_1_2","FS_2_1","FS_2_2","WT_1_1","WT_1_2","WT_2_1","WT_2_2")
+#colnames(norm_MH) <- c("FS_1_1","FS_1_2","FS_2_1","FS_2_2","WT_1_1","WT_1_2","WT_2_1","WT_2_2")
 dim(observed)
 dim(normalized)
 dim(norm_MH)
@@ -196,27 +136,27 @@ dds <-
                          colData = colData,
                          design = ~ condition)
 
-default <- counts(dds,normalized = FALSE)
-head(default)
-default_sizefactor <- counts(dds, normalized =TRUE)
-sizeFactors(dds)
-head(default_sizefactor)
+#default <- counts(dds,normalized = FALSE)
+#head(default)
+#default_sizefactor <- counts(dds, normalized =TRUE)
+#sizeFactors(dds)
+#head(default_sizefactor)
 ## Run DEseq analysis
-
-dds <- DESeq(dds)
+dds$condition
+dds$condition <- factor(dds$condition, level = c("WT","FS"))
 res1 <-
   DESeq(dds) |>
-  lfcShrink(coef = "condition_WT_vs_FS", type="apeglm")
+  lfcShrink(coef = "condition_FS_vs_WT", type="apeglm")
 summary(res1)
 plotMA(res1,ylim=c(-2,2),main='No normalization',
-       colSig = "skyblue",alpha = 0.1,cex.axis=1.5,cex=0.8,cex.lab=1.5,cex.main=1.5)
+       colSig = "skyblue",alpha = 0.1,cex.axis=1.5,cex=0.8,cex.lab=1.5,
+       cex.main=1.5,ylab="Log2 Fold Change",xlab="Mean of Normalized Counts",cex.main=1.5)
 
 ## Separate WT/FS-specific loops
-loopCounts[loopCounts$padj <= 0.1 &
-                        loopCounts$log2FoldChange > 0]
-dim(loopCounts[loopCounts$padj <= 0.1 &
-                        loopCounts$log2FoldChange < 0])
-
+#res2 <- na.omit(res1)
+#res3 <- res2[((res2$padj < 0.1) == "TRUE"),]
+#res4 <- res3[((abs(res3$log2FoldChange) > 0.585) == "TRUE"),]
+#dim(res3)
 ## Attach DESeq2 results
 mcols(loops) <- cbind(mcols(loops), observed, res1)
 head(loops)
@@ -231,34 +171,41 @@ dds <-
                          colData = colData,
                          design = ~ condition)
 
-normalizationFactors(dds) <- as.matrix(norm_MH)
-default <- counts(dds,normalized = FALSE)
-head(default)
+#normalizationFactors(dds) <- as.matrix(norm_MH)
+#default <- counts(dds,normalized = FALSE)
+#head(default)
 default_normfactor <- counts(dds, normalized =TRUE)
-head(default_normfactor)
+#head(default_normfactor)
 
 # perform enrichments
 #dds <- DESeq(dds,betaPrior=FALSE, fitType="local")
-dds <- DESeq(dds)
+#dds <- DESeq(dds)
 normalizationFactors(dds) <- as.matrix(norm_MH)
-
+dds$condition <- factor(dds$condition, level = c("WT","FS"))
 ## Run DEseq analysis
 res1 <-
   DESeq(dds) |>
-  lfcShrink(coef = "condition_WT_vs_FS", type="apeglm")
+  lfcShrink(coef = "condition_FS_vs_WT", type="apeglm")
 summary(res1)
-plotMA(res1)
-?plotMA
-plotMA(res1,ylim=c(-2,2),main='8-10 normalization',
-       colSig = "skyblue",alpha = 0.1,cex.axis=1.5,cex=0.8,cex.lab=1.5,cex.main=1.5)
+#plotMA(res1)
+#?plotMA
+plotMA(res1,ylim=c(-2,2),main='8-10 normaliztion',
+       colSig = "skyblue",alpha = 0.1,cex.axis=1.5,cex=0.8,cex.lab=1.5,
+       cex.main=1.5,ylab="Log2 Fold Change",xlab="Mean of Normalized Counts",cex.main=1.5)
 
+res2 <- na.omit(res1)
+res3 <- res2[((res2$padj < 0.1) == "TRUE"),]
+up <- res3[(((res3$log2FoldChange) >= 0) == "TRUE"),]
+down <- res3[(((res3$log2FoldChange) < 0) == "TRUE"),]
+dim(up)
+dim(down)
 
 mcols(loops) <- cbind(mcols(loops), res1)
 head(loops)
 #write.table(loops,"WT_vs_FS_no_norm",quote=FALSE,sep="\t")
-write.table(loops,"WT_vs_FS_8-10_observed",quote=FALSE,sep="\t")
+write.table(loops,"WT_vs_FS_8-10",quote=FALSE,sep="\t")
 
-loop <- 9334
+loop <- 876
 observed[loop,]
 normalized[loop,]
 norm_MH[loop,]
